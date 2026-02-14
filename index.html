@@ -1,10 +1,126 @@
+<div class="clicker-btn" id="vault">🏦</div>
+        
+        <div class="sub-section">
+            <div style="font-size: 13px; font-weight: bold;">⚡ Get Bonus Energy</div>
+            <button class="btn-sub" onclick="openChannel()">🔗 JOIN @vault_ray</button>
+            <button class="btn-check" id="check-btn" style="display:none;" onclick="checkSubscription()">✅ CHECK SUB</button>
+        </div>
+    </div>
+
+    <!-- ТАБЫ: ЗАГЛУШКИ -->
+    <div id="view-mine" class="view"><h2>Mining Shop</h2><p>Available soon...</p></div>
+    <div id="view-top" class="view"><h2>Leaders</h2><p>Coming soon...</p></div>
+    <div id="view-friends" class="view"><h2>Friends</h2><p>Coming soon...</p></div>
+    <div id="view-airdrop" class="view"><h2>Airdrop</h2><p>Coming soon...</p></div>
+
+    <!-- НИЖНЕЕ МЕНЮ -->
+    <nav class="nav-bar">
+        <div class="nav-item active" onclick="tab('home', this)"><span class="nav-icon">🏠</span>Home</div>
+        <div class="nav-item" onclick="tab('mine', this)"><span class="nav-icon">⛏️</span>Mine</div>
+        <div class="nav-item" onclick="tab('top', this)"><span class="nav-icon">🏆</span>Top</div>
+        <div class="nav-item" onclick="tab('friends', this)"><span class="nav-icon">👥</span>Friends</div>
+        <div class="nav-item" onclick="tab('airdrop', this)"><span class="nav-icon">💰</span>Airdrop</div>
+    </nav>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const CHANNEL_URL = "https://t.me"; 
+
+        let state = {
+            balance: parseFloat(localStorage.getItem('ray_bal')) || 0,
+            pph: parseInt(localStorage.getItem('ray_pph')) || 0,
+            energy: 2000,
+            maxEnergy: 2000,
+            lastSubClaim: localStorage.getItem('last_sub_claim') || 0
+        };
+
+        function updateUI() {
+            document.getElementById('balance').innerText = Math.floor(state.balance).toLocaleString();
+            document.getElementById('pph-val').innerText = '+' + state.pph;
+            document.getElementById('energy-val').innerText = ${Math.floor(state.energy)}/${state.maxEnergy};
+            localStorage.setItem('ray_bal', state.balance);
+        }
+
+        // ЛОГИКА КЛИКА
+        const vault = document.getElementById('vault');
+        vault.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            for (let i = 0; i < e.touches.length; i++) {
+                if (state.energy >= 1) {
+                    state.balance += 1;
+                    state.energy -= 1;
+                    spawnParticle(e.touches[i].clientX, e.touches[i].clientY);
+                }
+            }
+            tg.HapticFeedback.impactOccurred('light');
+            updateUI();
+        });
+
+        function spawnParticle(x, y) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.innerText = '+1';
+            p.style.left = x + 'px';
+            p.style.top = y + 'px';
+            document.body.appendChild(p);
+            setTimeout(() => p.remove(), 600);
+        }
+
+        // РЕГЕН И ПАССИВКА
+        setInterval(() => {
+            if (state.energy < state.maxEnergy) {
+                state.energy = Math.min(state.maxEnergy, state.energy + 0.55);
+            }
+            state.balance += (state.pph / 3600);
+            updateUI();
+        }, 1000);
+
+        // ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК (ИСПРАВЛЕНО)
+        function tab(id, el) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('view-' + id).classList.add('active');
+            el.classList.add('active');
+        }
+
+        // ПОДПИСКА
+        function openChannel() {
+            tg.openTelegramLink(CHANNEL_URL);
+            document.getElementById('check-btn').style.display = "block";
+        }
+
+        function checkSubscription() {
+            const now = Date.now();
+            if (now - state.lastSubClaim < 4 * 60 * 60 * 1000) {
+                tg.
+                 showAlert("Bonus already claimed! Please wait.");
+                return;
+            }
+            tg.showConfirm("Did you join @vault_ray?", (ok) => {
+                if(ok) {
+                    state.energy = Math.min(state.maxEnergy, state.energy + 1000);
+                    state.lastSubClaim = Date.now();
+                    localStorage.setItem('last_sub_claim', state.lastSubClaim);
+                    tg.showAlert("Energy Refilled! ⚡");
+                    document.getElementById('check-btn').style.display = "none";
+                    updateUI();
+                }
+            });
+        }
+
+        updateUI();
+    </script>
+</body>
+</html>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VAULT RAY - OFFICIAL APP</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>VAULT RAY OFFICIAL</title>
+    <script src="https://telegram.org"></script>
     <style>
         :root {
             --primary: #f3ba2f;
@@ -13,7 +129,7 @@
             --text: #ffffff;
             --subtext: #848e9c;
         }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
         body {
             background-color: var(--bg);
             color: var(--text);
@@ -35,44 +151,56 @@
         .stat-label { font-size: 11px; color: var(--subtext); }
         .stat-value { font-size: 15px; font-weight: bold; color: var(--primary); }
 
-        .view { display: none; flex-direction: column; align-items: center; height: 100%; padding: 20px 15px 100px; }
+        .view { display: none; flex-direction: column; align-items: center; height: 100%; padding: 20px 15px 100px; overflow-y: auto; }
         .view.active { display: flex; }
 
-        .balance-value { font-size: 50px; font-weight: 900; margin: 20px 0; }
+        .balance-value { font-size: 44px; font-weight: 900; margin: 20px 0; }
         
         .clicker-btn {
-            width: 260px; height: 260px;
+            width: 240px; height: 240px;
             background: radial-gradient(circle, #2b3139 0%, #000 100%);
-            border-radius: 50%; border: 8px solid #333;
+            border-radius: 50%; border: 6px solid #333;
             display: flex; align-items: center; justify-content: center;
-            font-size: 110px; box-shadow: 0 0 40px rgba(0,0,0,0.5);
+            font-size: 100px; box-shadow: 0 0 30px rgba(0,0,0,0.5);
             transition: transform 0.05s;
+            position: relative;
         }
-        .clicker-btn:active { transform: scale(0.94); }
+        .clicker-btn:active { transform: scale(0.92); }
 
         .sub-section {
-            width: 100%; margin-top: 25px;
+            width: 100%; margin-top: 20px;
             background: #1e2329; border: 1px solid #333;
-            padding: 15px; border-radius: 15px; text-align: center;
+            padding: 12px; border-radius: 15px; text-align: center;
         }
         .btn-sub {
             background: var(--primary); color: black; border: none;
-            width: 100%; padding: 12px; border-radius: 10px;
-            font-weight: bold; margin-top: 10px; cursor: pointer;
+            width: 100%; padding: 10px; border-radius: 8px;
+            font-weight: bold; margin-top: 8px; cursor: pointer;
         }
         .btn-check {
             background: transparent; color: var(--primary); border: 1px solid var(--primary);
-            width: 100%; padding: 10px; border-radius: 10px;
-            margin-top: 8px; font-size: 13px;
+            width: 100%; padding: 8px; border-radius: 8px;
+            margin-top: 5px; font-size: 12px;
         }
 
         .nav-bar {
             position: fixed; bottom: 0; width: 100%;
             display: grid; grid-template-columns: repeat(5, 1fr);
             background: #181c20; padding: 10px 0; border-top: 1px solid #2b3139;
+            z-index: 999;
         }
-        .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 10px; color: var(--subtext); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 10px; color: var(--subtext); cursor: pointer; }
         .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 20px; margin-bottom: 2px; }
+
+        .particle {
+            position: absolute; color: var(--primary); font-weight: bold; font-size: 24px;
+            pointer-events: none; animation: rise 0.6s ease-out forwards; z-index: 1000;
+        }
+        @keyframes rise {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-100px); }
+        }
     </style>
 </head>
 <body>
@@ -88,107 +216,6 @@
         </div>
     </div>
 
+    <!-- ТАБ: ГЛАВНАЯ -->
     <div id="view-home" class="view active">
         <div class="balance-value">💰 <span id="balance">0</span></div>
-        <div class="clicker-btn" id="vault">🏦</div>
-        
-        <div class="sub-section" id="sub-block">
-            <div style="font-size: 14px; font-weight: bold;">⚡ Low Energy?</div>
-            <div style="font-size: 11px; color: var(--subtext);">Join our channel for a massive energy boost!</div>
-            <button class="btn-sub" onclick="openChannel()">🔗 JOIN @vault_ray</button>
-            <button class="btn-check" id="check-btn" style="display:none;" onclick="checkSubscription()">✅ I HAVE SUBSCRIBED</button>
-            </div>
-    </div>
-
-    <!-- Заглушки -->
-    <div id="view-mine" class="view"><h2>Mining Shop</h2><p>Upgrade your income!</p></div>
-    <div id="view-top" class="view"><h2>World Ranking</h2><p>Top 50 Players</p></div>
-    <div id="view-friends" class="view"><h2>Friends</h2><p>Invite for bonuses</p></div>
-    <div id="view-airdrop" class="view"><h2>Airdrop</h2><p>Tasks & Listing</p></div>
-
-    <nav class="nav-bar">
-        <div class="nav-item active" onclick="tab('home', this)">🏠<br>Home</div>
-        <div class="nav-item" onclick="tab('mine', this)">⛏️<br>Mine</div>
-        <div class="nav-item" onclick="tab('top', this)">🏆<br>Top</div>
-        <div class="nav-item" onclick="tab('friends', this)">👥<br>Friends</div>
-        <div class="nav-item" onclick="tab('airdrop', this)">💰<br>Airdrop</div>
-    </nav>
-
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-
-        const CHANNEL_URL = "https://t.me/vault_ray"; 
-
-        let state = {
-            balance: parseFloat(localStorage.getItem('ray_bal')) || 0,
-            pph: parseInt(localStorage.getItem('ray_pph')) || 0,
-            energy: 2000,
-            maxEnergy: 2000,
-            lastSubClaim: localStorage.getItem('last_sub_claim') || 0
-        };
-
-        function update() {
-            document.getElementById('balance').innerText = Math.floor(state.balance).toLocaleString();
-            document.getElementById('pph-val').innerText = '+' + state.pph;
-            document.getElementById('energy-val').innerText = ${Math.floor(state.energy)}/${state.maxEnergy};
-            localStorage.setItem('ray_bal', state.balance);
-        }
-
-        document.getElementById('vault').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (state.energy >= 1) {
-                state.balance += 1;
-                state.energy -= 1;
-                tg.HapticFeedback.impactOccurred('light');
-                update();
-            } else {
-                tg.showAlert("No energy! Join channel for bonus.");
-            }
-        });
-
-        // Реалистичный реген: 2000 за час
-        setInterval(() => {
-            if (state.energy < state.maxEnergy) {
-                state.energy = Math.min(state.maxEnergy, state.energy + 0.55);
-                update();
-            }
-            state.balance += (state.pph / 3600);
-            update();
-        }, 1000);
-
-        function openChannel() {
-            tg.openTelegramLink(CHANNEL_URL);
-            document.getElementById('check-btn').style.display = "block";
-        }
-
-        function checkSubscription() {
-            const now = Date.now();
-            if (now - state.lastSubClaim < 8 * 60 * 60 * 1000) {
-                tg.showAlert("Bonus already claimed! Wait a few hours.");
-                return;
-            }
-
-            tg.showConfirm("Did you join @vault_ray?", (ok) => {
-                if(ok) {
-                    state.energy = Math.min(state.maxEnergy, state.energy + 1000);
-                    state.lastSubClaim = Date.now();
-                    localStorage.setItem('last_sub_claim', state.lastSubClaim);
-                    tg.showAlert("Energy Refilled! ⚡");
-                    document.getElementById('check-btn').style.display = "none";
-                    update();
-                }
-            });
-        }
-
-        function tab(id, el) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById('view-'+id).classList.add('active');
-            el.classList.add('active');
-        }
-
-        update();
-    </script>
-</body>
-</html>
