@@ -1,252 +1,303 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Ray Vault Clicker</title>
-    <script src="https://telegram.org"></script>
-    <style>
-        :root {
-            --main-gold: #f3ba2f;
-            --bg-dark: #0f0f0f;
-            --card-bg: #1e1e1e;
+cursor: pointer;
         }
-        body {
-            background-color: var(--bg-dark);
-            color: white;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-            touch-action: manipulation;
-        }
-        .header {
-            margin-top: 30px;
-            text-align: center;
-        }
-        .balance {
-            font-size: 50px;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-shadow: 0 0 20px rgba(243, 186, 47, 0.4);
-        }
-        .ray-symbol { color: var(--main-gold); }
-        
-        .rank-badge {
-            background: var(--card-bg);
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-            border: 1px solid #333;
-            margin-top: 10px;
-            color: #aaa;
-        }
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 22px; margin-bottom: 4px; }
 
-        .clicker-zone {
-            flex-grow: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            width: 100%;
+        /* PARTICLES */
+        .particle {
+            position: absolute; color: var(--primary);
+            font-weight: bold; font-size: 28px;
+            pointer-events: none; animation: rise 0.7s ease-out forwards;
         }
-
-        /* Тот самый СЕЙФ */
-        .vault-obj {
-            width: 240px;
-            height: 240px;
-            background: linear-gradient(145deg, #2a2a2a, #111);
-            border-radius: 40px;
-            border: 6px solid #444;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 100px;
-            position: relative;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6), inset 0 0 20px rgba(243, 186, 47, 0.05);
-            transition: transform 0.05s;
-            cursor: pointer;
-        }
-        .vault-obj::after {
-            content: '🔒'; /* Иконка замка */
-            position: absolute;
-            font-size: 40px;
-            right: 40px;
-        }
-        .vault-obj:active { transform: scale(0.92); }
-
-        .energy-section {
-            width: 90%;
-            margin-bottom: 25px;
-        }
-        .energy-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        .bar {
-            width: 100%;
-            height: 14px;
-            background: #222;
-            border-radius: 10px;
-            border: 1px solid #333;
-            overflow: hidden;
-        }
-        .fill {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, var(--main-gold), #ff8c00);
-            transition: width 0.1s;
-        }
-
-        .footer-menu {
-            display: flex;
-            width: 100%;
-            background: var(--card-bg);
-            padding: 15px 0;
-            justify-content: space-around;
-            border-top: 1px solid #333;
-        }
-        .menu-item { font-size: 12px; text-align: center; opacity: 0.6; }
-        .menu-item.active { opacity: 1; color: var(--main-gold); }
-
-        /* Анимация клика */
-        .plus-ray {
-            position: absolute;
-            color: var(--main-gold);
-            font-weight: bold;
-            font-size: 28px;
-            pointer-events: none;
-            animation: floatUp 0.6s ease-out forwards;
-        }
-        @keyframes floatUp {
-            0% { transform: translateY(0); opacity: 1; }
-            100% { transform: translateY(-120px); opacity: 0; }
-        }
-
-        /* Заглушка под РЕКЛАМУ */
-        .ad-banner {
-            width: 90%;
-            height: 60px;
-            background: #252525;
-            margin-bottom: 15px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #555;
-            font-size: 12px;
-            border: 1px dashed #444;
+        @keyframes rise {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-120px); }
         }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="balance">
-            <span class="ray-symbol">RAY</span>
-            <span id="coins">0</span>
+    <div class="top-nav">
+        <div class="nav-stat">Profit per hour <span id="pph-val">+0</span></div>
+        <div class="nav-stat">Energy <span id="energy-stat">2000/2000</span></div>
+    </div>
+
+    <!-- MAIN VIEW -->
+    <div id="view-home" class="view active">
+        <div class="score-container">
+            <div id="balance">💰 0</div>
+            <div style="color:var(--subtext)">RAY COINS</div>
         </div>
-        <div class="rank-badge" id="rank">Bronze Newbie</div>
-    </div>
-
-    <div class="clicker-zone">
-        <div class="vault-obj" id="clicker">🗄️</div>
-    </div>
-
-    <!-- Рекламный блок (сюда потом вставим код AdsGram) -->
-    <div class="ad-banner" onclick="showAd()">РЕКЛАМНЫЙ БЛОК (Смотреть за +500 RAY)</div>
-
-    <div class="energy-section">
-        <div class="energy-info">
-            <span>⚡ <span id="energy-val">1000</span></span>
-            <span>Limit: 1000</span>
+        <div class="vault-btn" id="vault">🏦</div>
+        <div style="width:100%; margin-top:20px;">
+            <button onclick="watchAd()" id="ad-btn" style="width:100%; background:#252a30; border:1px solid #444; color:white; padding:15px; border-radius:15px;">
+                📺 Watch Ad (Refill +1000 Energy)
+            </button>
         </div>
-        <div class="bar"><div class="fill" id="energy-bar"></div></div>
     </div>
 
-    <div class="footer-menu">
-        <div class="menu-item active">💰<br>Clicker</div>
-        <div class="menu-item">🚀<br>Boosts</div>
-        <div class="menu-item" onclick="Telegram.WebApp.showAlert('Рефералы: скоро!')">👥<br>Friends</div>
+    <!-- SHOP VIEW -->
+    <div id="view-shop" class="view">
+        <h2 style="text-align:center">Mining Center</h2>
+        <div class="shop-grid">
+            <div class="card">
+                <span>💻</span>
+                <h4>GPU Miner</h4>
+                <p>Profit: +50/h</p>
+                <button onclick="buy(500, 50)">500 RAY</button>
+            </div>
+            <div class="card">
+                <span>📊</span>
+                <h4>Marketing</h4>
+                <p>Profit: +120/h</p>
+                <button onclick="buy(1500, 120)">1.5k RAY</button>
+            </div>
+            <div class="card">
+                <span>🛡️</span>
+                <h4>Security</h4>
+                <p>Profit: +300/h</p>
+                <button onclick="buy(4000, 300)">4k RAY</button>
+            </div>
+            <div class="card">
+                <span>🌍</span>
+                <h4>Global Node</h4>
+                <p>Profit: +1k/h</p>
+                <button onclick="buy(15000, 1000)">15k RAY</button>
+            </div>
+        </div>
     </div>
+
+    <!-- LEADERS VIEW -->
+    <div id="view-leaders" class="view">
+        <h2 style="text-align:center">World Ranking</h2>
+        <div id="leaderboard"></div>
+    </div>
+
+    <!-- FOOTER -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="showTab('home', this)"><span class="nav-icon">🏠</span>Home</div>
+        <div class="nav-item" onclick="showTab('shop', this)"><span class="nav-icon">⛏️</span>Mine</div>
+        <div class="nav-item" onclick="showTab('leaders', this)"><span class="nav-icon">🏆</span>Top</div>
+        <div class="nav-item" onclick="showTab('friends', this)"><span class="nav-icon">👥</span>Friends</div>
+        <div class="nav-item" onclick="showTab('airdrop', this)"><span class="nav-icon">💰</span>Airdrop</div>
+    </nav>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let coins = parseInt(localStorage.getItem('ray_coins')) || 0;
-        let energy = 1000;
-        let lastClickTime = 0;
+        let state = {
+            balance: parseFloat(localStorage.getItem('ray_bal')) || 0,
+            pph: parseInt(localStorage.getItem('ray_pph')) || 0,
+            energy: 2000,
+            maxEnergy: 2000
+        };
 
-        const coinsEl = document.getElementById('coins');
-        const energyEl = document.getElementById('energy-val');
-        const energyBar = document.getElementById('energy-bar');
-        const clickBtn = document.getElementById('clicker');
+        const flags = ['🇺🇸','🇷🇺','🇩🇪','🇧🇷','🇨🇳','🇫🇷','🇮🇳','🇦🇪','🇹🇷','🇰🇿','🇬🇧','🇯🇵','🇮🇹','🇪🇸','🇰🇷'];
+        const names = ['CryptoKing','RayMaster','WolfOfWall','ElonFan','Alpha','Shadow','Boss','Tsar','Sultan','Zero'];
 
-        function updateDisplay() {
-            coinsEl.innerText = coins.toLocaleString();
-            energyEl.innerText = energy;
-            energyBar.style.width = (energy / 10) + '%';
-            localStorage.setItem('ray_coins', coins);
-            
-            if(coins > 1000) document.getElementById('rank').innerText = "Ray Farmer";
-            if(coins > 10000) document.getElementById('rank').innerText = "Safe Master";
+        function initLeaders() {
+            const container = document.getElementById('leaderboard');
+            for(let i=1; i<=50; i++) {
+                const item = document.createElement('div');
+                item.className = 'leader-item';
+                const f = flags[Math.floor(Math.random()*flags.length)];
+                const n = names[Math.floor(Math.random()*names.length)] + Math.floor(Math.random()*99);
+                const v = (1000000 / i).toFixed(0);
+                item.innerHTML = <div class="rank-num">${i}</div><div class="flag">${f}</div><div class="leader-info"><b>${n}</b></div><div class="leader-val">${v} RAY</div>;
+                container.appendChild(item);
+            }
         }
 
-        // КЛИК
-        clickBtn.addEventListener('touchstart', (e) => {
-            const now = Date.now();
-            if (now - lastClickTime < 30) return; // Защита от лютых кликеров
-            lastClickTime = now;
+        function update() {
+            document.getElementById('balance').innerText = '💰 ' + Math.floor(state.balance).toLocaleString();
+            document.getElementById('pph-val').innerText = '+' + state.pph.toLocaleString();
+            document.getElementById('energy-stat').innerText = ${state.energy}/${state.maxEnergy};
+            localStorage.setItem('ray_bal', state.balance);
+            localStorage.setItem('ray_pph', state.pph);
+        }
 
-            if (energy > 0) {
-                coins += 1;
-                energy -= 1;
-                
-                // Эффекты
-                tg.HapticFeedback.impactOccurred('medium');
-                createEffect(e.touches[0].clientX, e.touches[0].clientY);
-                updateDisplay();
-            } else {
-                tg.HapticFeedback.notificationOccurred('error');
+        // CLICK
+        document.getElementById('vault').addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            for(let i=0; i<e.touches.length; i++) {
+                if(state.energy > 0) {
+                    state.balance += 1;
+                    state.energy -= 1;
+                    createP(e.touches[i].clientX, e.touches[i].clientY);
+                }
             }
+            tg.HapticFeedback.impactOccurred('heavy');
+            update();
         });
 
-        function createEffect(x, y) {
-            const el = document.createElement('div');
-            el.className = 'plus-ray';
-            el.innerText = '+1';
-            el.style.left = x + 'px';
-            el.style.top = y + 'px';
-            document.body.appendChild(el);
-            setTimeout(() => el.remove(), 600);
+        function createP(x,y) {
+            const p = document.createElement('div');
+            p.className = 'particle'; p.innerText = '+1';
+            p.style.left = x+'px'; p.style.top = y+'px';
+            document.body.appendChild(p);
+            setTimeout(() => p.remove(), 700);
         }
 
-        // Реген энергии
+        // PASSIVE
         setInterval(() => {
-            if (energy < 1000) {
-                energy += 1;
-                updateDisplay();
-            }
-        }, 1500);
+            state.balance += (state.pph / 3600);
+            if(state.energy < state.maxEnergy) state.energy += 1;
+            update();
+        }, 1000);
 
-        function showAd() {
-            tg.showConfirm("Хочешь посмотреть рекламу и получить 500 RAY?", (ok) => {
+        function showTab(id, el) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('view-'+id).classList.add('active');
+            el.classList.add('active');
+        }
+
+        function buy(cost, add) {
+            if(state.balance >= cost) {
+                state.balance -= cost;
+                state.pph += add;
+                tg.HapticFeedback.notificationOccurred('success');
+                update();
+            } else {
+                tg.showAlert("Need more RAY!");
+            }
+        }
+
+        function watchAd() {
+            tg.showConfirm("Watch video to get 1000 Energy?", (ok) => {
                 if(ok) {
-                    tg.showAlert("Реклама загружается... (Тут будет код AdsGram)");
-                    // Сюда вставим скрипт рекламы позже
+                    state.energy = state.maxEnergy;
+                    tg.showAlert("Energy Refilled!");
+                    update();
                 }
             });
         }
 
-        updateDisplay();
+        initLeaders();
+        update();
     </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RAY GLOBAL EMPIRE</title>
+    <script src="https://telegram.org"></script>
+    <style>
+        :root {
+            --primary: #f3ba2f;
+            --bg: #0b0e11;
+            --card: #1c2127;
+            --text: #ffffff;
+            --subtext: #848e9c;
+            --green: #02c076;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* TOP NAV */
+        .top-nav {
+            padding: 10px 15px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: rgba(0,0,0,0.3);
+        }
+        .nav-stat {
+            background: var(--card);
+            padding: 8px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 12px;
+            border: 1px solid #2b3139;
+        }
+        .nav-stat span { display: block; color: var(--primary); font-weight: bold; font-size: 14px; }
+
+        /* VIEWS */
+        .view { display: none; flex-direction: column; height: 100%; overflow-y: auto; padding: 20px 15px 100px; }
+        .view.active { display: flex; }
+
+        /* MAIN CLICKER */
+        .score-container { text-align: center; margin: 20px 0; }
+        #balance { font-size: 52px; font-weight: 900; color: white; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .vault-btn {
+            width: 260px; height: 260px;
+            background: radial-gradient(circle, #2b3139 0%, #111 100%);
+            border-radius: 50%;
+            border: 8px solid #333;
+            margin: 20px auto;
+            display: flex;
+            align-items: center; justify-content: center;
+            font-size: 100px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            transition: transform 0.05s;
+            position: relative;
+        }
+        .vault-btn:active { transform: scale(0.92); }
+
+        /* SHOP CARDS */
+        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .card {
+            background: var(--card);
+            padding: 15px;
+            border-radius: 15px;
+            border: 1px solid #2b3139;
+            text-align: center;
+        }
+        .card h4 { margin: 5px 0; font-size: 14px; }
+        .card p { font-size: 11px; color: var(--subtext); margin: 5px 0; }
+        .card button {
+            background: var(--primary);
+            border: none;
+            width: 100%;
+            padding: 8px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        /* LEADERBOARD */
+        .leader-item {
+            display: flex;
+            align-items: center;
+            background: var(--card);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            gap: 15px;
+        }
+        .rank-num { font-weight: bold; color: var(--primary); width: 25px; }
+        .flag { font-size: 20px; }
+        .leader-info { flex-grow: 1; }
+        .leader-val { font-weight: bold; color: var(--green); }
+
+        /* FOOTER */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; width: 100%;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #181c20;
+            padding: 10px 0;
+            border-top: 1px solid #2b3139;
+            z-index: 100;
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 10px;
+            color: var(--subtext);
